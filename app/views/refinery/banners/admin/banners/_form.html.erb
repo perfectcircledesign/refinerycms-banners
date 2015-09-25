@@ -1,0 +1,124 @@
+<%= form_for [refinery, :banners_admin, @banner] do |f| -%>
+  <%= render '/refinery/admin/error_messages',
+              :object => @banner,
+              :include_object_name => true %>
+
+
+    <div class='field'>
+      <%= f.label :banner_type -%>
+      <%= f.select :banner_type, Refinery::Banners::Banner.included_banner_types(::Refinery::Banners::Banner::BANNER_TYPES), {:include_blank => true}, :class => 'larger widest' %>
+    </div>
+
+  <div class='field'>
+    <%= f.label :title -%>
+    <%= f.text_field :title, :class => 'larger widest' -%>
+  </div>
+
+  <div class='field toggable captionField'>
+    <%= f.label :caption -%>
+    <%= f.text_field :caption, :class => 'larger widest' -%>
+  </div>
+
+    <div class='field toggable urlField'>
+      <%= f.label :url -%>
+      <%= f.text_field :url -%>
+    </div>
+
+  <div class='field toggable imageField'>
+    <%= f.label :image -%>
+    <%= render '/refinery/admin/image_picker',
+               :f => f,
+               :field => :image_id,
+               :image => @banner.image,
+               :toggle_image_display => false -%>
+  </div>
+
+    <% if defined?(::Refinery::Videos::Video) %>
+        <div class='field toggable videoField'>
+          <%= f.label :video_id -%>
+          <%= f.collection_select :video_id, ::Refinery::Videos::Video.order(:title), :id , :title, {:prompt => "-- Please select when relevant --"}, {} -%>
+        </div>
+    <% end %>
+
+  <div class='field'>
+    <%= f.label :start_date -%>
+    <%= f.date_select :start_date -%>
+  </div>
+
+  <div class='field'>
+    <%= f.label :expiry_date -%>
+    <%= f.date_select :expiry_date -%>
+  </div>
+
+    <!--TODO refactor code-->
+  <% Refinery::Banners::Banner.reflect_on_all_associations(:has_many).map{|a| a if a.options[:source_type].present? }.uniq.compact.each do |ar| %>
+    <div class="field">
+
+      <%= f.label ar.name %>
+      <% class_eval("#{ar.options[:source_type]}").all.each do |item| %>
+          <div>
+            <%= check_box_tag "banner[#{ar.plural_name.singularize}_ids][]", item.id, eval("@banner.#{ar.plural_name}.include?(item)") %>
+            <% if item.try(:title) %>
+                <%= item.try(:title) %>
+            <% elsif item.try(:name) %>
+                <%= item.try(:name) %>
+            <% end %>
+          </div>
+      <% end %>
+    </div>
+  <% end %>
+
+
+
+
+
+
+  <%= render '/refinery/admin/form_actions', :f => f,
+             :continue_editing => false,
+             :delete_title => t('delete', :scope => 'refinery.banners.admin.banners.banner'),
+             :delete_confirmation => t('message', :scope => 'refinery.admin.delete', :title => @banner.banner_type) -%>
+<% end -%>
+<% content_for :javascripts do -%>
+    <script>
+        $(document).ready(function(){
+            podType = $( "#banner_banner_type" );
+            toggle_fields(podType.val());
+
+            podType.change(function() {
+                toggle_fields($(this).val());
+            });
+
+        });
+
+
+
+        function toggle_fields(podType){
+            hide_all_fields();
+            urlField = $('.urlField');
+            imageField = $('.imageField');
+            videoField = $('.videoField');
+            captionField = $('.captionField');
+            switch(podType){
+                case 'image':
+                    imageField.show();
+                    captionField.show();
+                    urlField.show();
+                    break;
+                case 'video':
+                    videoField.show();
+                    captionField.show();
+                    break;
+                case 'sliver':
+                    imageField.show();
+                    break;
+            }
+        }
+
+        function hide_all_fields(){
+           $('.toggable').hide();
+        }
+
+
+
+    </script>
+<% end -%>
